@@ -149,8 +149,9 @@ fn main() {
     let happiness_avg = calculate_happiness_average(&services);
     let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
+    // TODO: this could be made dynamic.
     println!(
-        "\n{}\n \n{} {:.2} | {} {:.2}",
+        "{}\n\n{} {:.2} | {} {:.2}",
         "# Systemd Security Analysis".bold().cyan(),
         "Average Exposure:",
         exposure_avg,
