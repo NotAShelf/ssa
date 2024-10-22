@@ -132,25 +132,38 @@ fn top_n_services(services: &[Service], predicate: &str, n: usize) -> Vec<Servic
     filtered_services.into_iter().take(n).collect()
 }
 
+fn colorize_predicate(predicate: &str) -> ColoredString {
+    match predicate {
+        "OK" => predicate.green(),
+        "MEDIUM" => predicate.white(),
+        "EXPOSED" => predicate.yellow(),
+        "UNSAFE" => predicate.red(),
+        _ => predicate.normal(),
+    }
+}
+
 fn main() {
     let args = Args::parse();
     let services = run_systemd_analyze(args.debug);
-
     let exposure_avg = calculate_exposure_average(&services);
     let happiness_avg = calculate_happiness_average(&services);
-
-    println!("\n{}\n", "# Systemd Security Analysis".bold().yellow());
-    println!("{} {:.2}", "Average Exposure:".bold(), exposure_avg);
-    println!("{} {:.2}", "Average Happiness:".bold(), happiness_avg);
-
     let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
     println!(
+        "\n{}\n \n{} {:.2} | {} {:.2}",
+        "# Systemd Security Analysis".bold().cyan(),
+        "Average Exposure:",
+        exposure_avg,
+        "Average Happiness:",
+        happiness_avg
+    );
+
+    println!(
         "\n{} {} {} '{}':\n",
-        "## Top".bold().blue(),
+        "## Top".bold().cyan(),
         args.top_n.to_string().bold().blue(),
-        "services with predicate".bold().blue(),
-        args.predicate.bold().yellow()
+        "services with predicate".bold().cyan(),
+        colorize_predicate(&args.predicate)
     );
 
     for service in top_services {
@@ -159,7 +172,7 @@ fn main() {
             "•".green(),
             service.unit.bold(),
             "-".blue(),
-            "Exposure:".bold(),
+            colorize_predicate(&service.predicate),
             service.exposure
         );
     }
