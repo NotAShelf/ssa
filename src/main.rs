@@ -1,8 +1,8 @@
 use clap::Parser;
+use colored::*;
 use serde_json::Value;
 use std::process::Command;
 
-/// command line arguments structure
 #[derive(Parser)]
 struct Args {
     /// number of top services to display
@@ -41,15 +41,9 @@ fn run_systemd_analyze(debug: bool) -> Vec<Service> {
         panic!("systemd-analyze failed: {}", err);
     }
 
-    // Also return the raw JSON output if debug mode is enabled
-    // Obviously, this is for debugging purposes only. You can
-    // get the same values by running systemd-analyze manually
-    // in your terminal.
     if debug {
-        println!(
-            "Raw JSON output: {:?}",
-            String::from_utf8_lossy(&output.stdout)
-        );
+        println!("{}", "Raw JSON output:".bold().yellow());
+        println!("{}", String::from_utf8_lossy(&output.stdout).green());
     }
 
     let json_output: Value = serde_json::from_slice(&output.stdout).expect("failed to parse json");
@@ -143,18 +137,30 @@ fn main() {
     let services = run_systemd_analyze(args.debug);
 
     let exposure_avg = calculate_exposure_average(&services);
-    println!("Average Exposure: {:.2}", exposure_avg);
-
     let happiness_avg = calculate_happiness_average(&services);
-    println!("Average Happiness: {:.2}", happiness_avg);
+
+    println!("\n{}\n", "# Systemd Security Analysis".bold().yellow());
+    println!("{} {:.2}", "Average Exposure:".bold(), exposure_avg);
+    println!("{} {:.2}", "Average Happiness:".bold(), happiness_avg);
 
     let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
     println!(
-        "\nTop {} services with predicate '{}':",
-        args.top_n, args.predicate
+        "\n{} {} {} '{}':\n",
+        "## Top".bold().blue(),
+        args.top_n.to_string().bold().blue(),
+        "services with predicate".bold().blue(),
+        args.predicate.bold().yellow()
     );
+
     for service in top_services {
-        println!("{:?} (Exposure: {:.2})", service.unit, service.exposure);
+        println!(
+            "{} {} {} ({} {:.2})",
+            "•".green(),
+            service.unit.bold(),
+            "-".blue(),
+            "Exposure:".bold(),
+            service.exposure
+        );
     }
 }
