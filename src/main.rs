@@ -1,37 +1,58 @@
+use clap::Parser;
 use serde_json::Value;
 use std::process::Command;
+
+/// command line arguments structure
+#[derive(Parser)]
+struct Args {
+    /// number of top services to display
+    #[arg(short, long)]
+    top_n: u32,
+    /// predicate by which to filter services (MEDIUM or EXPOSED)
+    #[arg(short, long)]
+    predicate: String,
+    /// enable debug mode to print the raw json output
+    #[arg(long)]
+    debug: bool,
+}
 
 // store unit details in a struct
 #[derive(Debug, Clone)]
 struct Service {
     /// name of the unit
     unit: String,
-
     /// exposure value of the unit
     exposure: f64,
-
     /// exposure predicate of the unit
     predicate: String,
-
     /// happiness score of the unit, represented
     /// by emojis: 😀, 🙂, 😐, 🙁, 😨
     happy: String,
 }
 
-fn run_systemd_analyze() -> Vec<Service> {
+fn run_systemd_analyze(debug: bool) -> Vec<Service> {
     let output = Command::new("systemd-analyze")
         .args(&["security", "--json=short", "--no-pager"])
         .output()
         .expect("failed to execute process");
 
-    // check if the command was successful
     if !output.status.success() {
         let err = String::from_utf8_lossy(&output.stderr);
         panic!("systemd-analyze failed: {}", err);
     }
 
-    let json_output: Value = serde_json::from_slice(&output.stdout).expect("failed to parse json");
+    // Also return the raw JSON output if debug mode is enabled
+    // Obviously, this is for debugging purposes only. You can
+    // get the same values by running systemd-analyze manually
+    // in your terminal.
+    if debug {
+        println!(
+            "Raw JSON output: {:?}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+    }
 
+    let json_output: Value = serde_json::from_slice(&output.stdout).expect("failed to parse json");
     let mut services: Vec<Service> = Vec::new();
 
     if let Some(entries) = json_output.as_array() {
@@ -80,6 +101,7 @@ fn calculate_happiness_average(services: &[Service]) -> f64 {
     ];
     let mut total_happiness = 0.0;
     let mut count = 0;
+
     for service in services {
         if let Some(&score) =
             happiness_map
@@ -92,6 +114,7 @@ fn calculate_happiness_average(services: &[Service]) -> f64 {
             println!("Warning: unmatched happy value '{}'", service.happy);
         }
     }
+
     if count == 0 {
         f64::NAN
     } else {
@@ -116,7 +139,8 @@ fn top_n_services(services: &[Service], predicate: &str, n: usize) -> Vec<Servic
 }
 
 fn main() {
-    let services = run_systemd_analyze();
+    let args = Args::parse();
+    let services = run_systemd_analyze(args.debug);
 
     let exposure_avg = calculate_exposure_average(&services);
     println!("Average Exposure: {:.2}", exposure_avg);
@@ -124,12 +148,12 @@ fn main() {
     let happiness_avg = calculate_happiness_average(&services);
     println!("Average Happiness: {:.2}", happiness_avg);
 
-    // TODO: those should be arguments
-    let predicate = "MEDIUM";
-    let top_n = 5;
-    let top_services = top_n_services(&services, predicate, top_n);
+    let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
-    println!("\nTop {} services with predicate '{}':", top_n, predicate);
+    println!(
+        "\nTop {} services with predicate '{}':",
+        args.top_n, args.predicate
+    );
     for service in top_services {
         println!("{:?} (Exposure: {:.2})", service.unit, service.exposure);
     }
