@@ -3,6 +3,20 @@ name = "SSA"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "ssa"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
