@@ -14,7 +14,8 @@
 
 - Simple
 - Fast (One could say... blazingly fast.)
-- ✨ Pretty ✨
+- Pretty
+- Verbose
 
 What else do you need?
 
@@ -49,7 +50,11 @@ In addition, you will be shown the average exposure (out of 10) and the average
 happiness (out of 5). In addition to displaying the top N services for a given
 predicate, SSA will color the exposure level output based on how exposed it is.
 
-<img alt="latest demo" src=".github/assets/demo.png" width="500px">
+<div align="center">
+    <p>SSA in action</p>
+    <img alt="latest demo" src=".github/assets/demo.png" width="500px">
+    <p>Cool, right?</p>
+</div>
 
 ## Why?
 
@@ -58,6 +63,8 @@ aggregate the results of `systemd-analyze security` for testing and NixOS VM
 tests in CI.
 
 ## Contributing
+
+[Microfetch]: https://github.com/notashelf/microfetch
 
 For what it's worth, SSA has been created because I wanted to write a structured
 bash script for parsing the output of `systemd-analyze security`. Rust came to
@@ -70,7 +77,9 @@ the parser) or inspect the raw JSON data yourself with `--debug` passed to the
 program.
 
 If you would like to see some other features, open either an issue or a pull
-request depending on your own ability to implement the changes.
+request depending on your own ability to implement the changes. SSA is not
+restricted by petty limitations such as my other toy project, [Microfetch] and
+is always open to new features.
 
 ## License
 
