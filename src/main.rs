@@ -1,5 +1,6 @@
 use clap::Parser;
 use colored::*;
+use serde::Serialize;
 use serde_json::Value;
 use std::process::Command;
 
@@ -8,26 +9,42 @@ struct Args {
     /// number of top services to display
     #[arg(short, long)]
     top_n: u32,
+
     /// predicate by which to filter services (MEDIUM or EXPOSED)
     #[arg(short, long)]
     predicate: String,
+
     /// enable debug mode to print the raw json output
     #[arg(long)]
     debug: bool,
+
+    /// output results in json format
+    #[arg(long)]
+    json: bool,
 }
 
 // store unit details in a struct
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 struct Service {
     /// name of the unit
     unit: String,
+
     /// exposure value of the unit
     exposure: f64,
+
     /// exposure predicate of the unit
     predicate: String,
+
     /// happiness score of the unit, represented
     /// by emojis: 😀, 🙂, 😐, 🙁, 😨
     happy: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AnalysisResult {
+    average_exposure: f64,
+    average_happiness: f64,
+    top_services: Vec<Service>,
 }
 
 fn run_systemd_analyze(debug: bool) -> Vec<Service> {
@@ -149,32 +166,42 @@ fn main() {
     let happiness_avg = calculate_happiness_average(&services);
     let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
-    // TODO: this could be made dynamic.
-    println!(
-        "{}\n\n{} {:.2} | {} {:.2}",
-        "# Systemd Security Analysis".bold().cyan(),
-        "Average Exposure:",
-        exposure_avg,
-        "Average Happiness:",
-        happiness_avg
-    );
-
-    println!(
-        "\n{} {} {} '{}':\n",
-        "## Top".bold().cyan(),
-        args.top_n.to_string().bold().blue(),
-        "services with predicate".bold().cyan(),
-        colorize_predicate(&args.predicate)
-    );
-
-    for service in top_services {
+    if args.json {
+        let result = AnalysisResult {
+            average_exposure: exposure_avg,
+            average_happiness: happiness_avg,
+            top_services,
+        };
+        let json_output =
+            serde_json::to_string_pretty(&result).expect("failed to serialize to json");
+        println!("{}", json_output);
+    } else {
         println!(
-            "{} {} {} ({} {:.2})",
-            "•".green(),
-            service.unit.bold(),
-            "-".blue(),
-            colorize_predicate(&service.predicate),
-            service.exposure
+            "{}\n\n{} {:.2} | {} {:.2}",
+            "# Systemd Security Analysis".bold().cyan(),
+            "Average Exposure:",
+            exposure_avg,
+            "Average Happiness:",
+            happiness_avg
         );
+
+        println!(
+            "\n{} {} {} '{}':\n",
+            "## Top".bold().cyan(),
+            args.top_n.to_string().bold().blue(),
+            "services with predicate".bold().cyan(),
+            colorize_predicate(&args.predicate)
+        );
+
+        for service in top_services {
+            println!(
+                "{} {} {} ({} {:.2})",
+                "•".green(),
+                service.unit.bold(),
+                "->".blue(),
+                colorize_predicate(&service.predicate),
+                service.exposure
+            );
+        }
     }
 }
