@@ -21,18 +21,31 @@ What else do you need?
 
 ## Usage
 
-There are four possible arguments, two of which are mandatory:
+You can run SSA without any arguments, which will return a pretty-printed
+version of the security analysis. Though, the main functionality - the _Crème de
+la crème_ - of SSA is its ability to filter services by predicate, and print
+them in JSON format if need be. Lets go over possible arguments.
 
-- `--top-n` -> Number of services to list for a given predicate
-- `--predicate` -> Predicate for which to aggregate services
+- `-t, --top-n <TOP_N>` -> number of top services to display
+- `-p, --predicate <PREDICATE>` -> predicate by which to filter services
 
-And two optional:
+- `--ok` -> only return services with the **OK** predicate
+- `--medium` -> only return services with the **MEDIUM** predicate
+- `--exposed` -> only return services with the **EXPOSED** predicate
+- `--unsafe` -> only return services with the **UNSAFE** predicate
 
-- `--debug` -> Print raw JSON aggregated from `systemd-analyze security`
-- `--json` -> Whether to return the aggregated results in JSON for future
-  parsing
+- `--debug` ->enable debug mode to print the raw JSON output
+- `--json` ->output results in JSON format
 
-### Example:
+In addition, you will be shown the average exposure (out of 10, 10 being worst)
+and the average happiness (out of 5, 5 being best). In addition to displaying
+the top N services for a given predicate, SSA will color the exposure level
+output based on how exposed it is. Because here do things the ✨ pretty ✨ way.
+
+### Example 1:
+
+One case is that you would combine `--top-n` and `--predicate` to print a number
+of services with the predicate you wish to filter for.
 
 ```bash
 ssa --top-n 10 --predicate UNSAFE
@@ -41,20 +54,32 @@ ssa --top-n 10 --predicate UNSAFE
 This will return the **10** services marked as **UNSAFE** in the security
 report. Possible predicates are:
 
-- `"OK"`
-- `"MEDIUM"`
-- `"EXPOSED"`
-- `"UNSAFE"`
+- `OK`
+- `MEDIUM`
+- `EXPOSED`
+- `UNSAFE`
 
-In addition, you will be shown the average exposure (out of 10) and the average
-happiness (out of 5). In addition to displaying the top N services for a given
-predicate, SSA will color the exposure level output based on how exposed it is.
+### Example 2:
 
-<div align="center">
-    <p>SSA in action</p>
-    <img alt="latest demo" src=".github/assets/demo.png" width="500px">
-    <p>Cool, right?</p>
-</div>
+Another case is that you wish to see all **UNSAFE** (scary) services on your
+system, for future hardening. In that case you can simply run
+
+```bash
+ssa --unsafe
+```
+
+This will return all unsafe services. Similarly, you can filter only services
+with **OK** predicate if you wish to feel more comfortable.
+
+```bash
+ssa --unsafe
+```
+
+Better yet, lets show just the _top 3_ services with **MEDIUM** predicate...
+
+```bash
+ssa --unsafe --top-n 3
+```
 
 ## Why?
 
@@ -78,7 +103,7 @@ program.
 
 If you would like to see some other features, open either an issue or a pull
 request depending on your own ability to implement the changes. SSA is not
-restricted by petty limitations such as my other toy project, [Microfetch] and
+restricted by petty limitations such as my other toy project, [Microfetch], and
 is always open to new features.
 
 ## License
