@@ -3,6 +3,16 @@
 version = 3
 
 [[package]]
+name = "SSA"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "colored",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -208,16 +218,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "systemdeez"
-version = "0.1.0"
-dependencies = [
- "clap",
- "colored",
- "serde",
- "serde_json",
 ]
 
 [[package]]
