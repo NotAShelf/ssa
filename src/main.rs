@@ -5,36 +5,39 @@ use serde_json::Value;
 use std::process::Command;
 
 #[derive(Parser)]
+#[command(name = "SSA")]
+#[command(version)]
+#[command(about = "Simple, streamlined and ✨ pretty ✨ aggregator for systemd-analyze security", long_about = None)]
 struct Args {
-    /// number of top services to display
+    /// Number of top services to display
     #[arg(short, long)]
     top_n: Option<u32>,
 
-    /// predicate by which to filter services (MEDIUM or EXPOSED)
+    /// Predicate by which to filter services
     #[arg(short, long)]
     predicate: Option<String>,
 
-    /// only return services with the "OK" predicate
+    /// Only return services with the "OK" predicate
     #[arg(long)]
     ok: bool,
 
-    /// only return services with the "MEDIUM" predicate
+    /// Only return services with the "MEDIUM" predicate
     #[arg(long)]
     medium: bool,
 
-    /// only return services with the "EXPOSED" predicate
+    /// Only return services with the "EXPOSED" predicate
     #[arg(long)]
     exposed: bool,
 
-    /// only return services with the "UNSAFE" predicate
+    /// Only return services with the "UNSAFE" predicate
     #[arg(long)]
     unsafe_: bool,
 
-    /// enable debug mode to print the raw json output
+    /// Enable debug mode to print the raw JSON output
     #[arg(long)]
     debug: bool,
 
-    /// output results in json format
+    /// Output results in JSON format
     #[arg(long)]
     json: bool,
 }
