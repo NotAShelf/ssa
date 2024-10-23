@@ -8,11 +8,27 @@ use std::process::Command;
 struct Args {
     /// number of top services to display
     #[arg(short, long)]
-    top_n: u32,
+    top_n: Option<u32>,
 
     /// predicate by which to filter services (MEDIUM or EXPOSED)
     #[arg(short, long)]
-    predicate: String,
+    predicate: Option<String>,
+
+    /// only return services with the "OK" predicate
+    #[arg(long)]
+    ok: bool,
+
+    /// only return services with the "MEDIUM" predicate
+    #[arg(long)]
+    medium: bool,
+
+    /// only return services with the "EXPOSED" predicate
+    #[arg(long)]
+    exposed: bool,
+
+    /// only return services with the "UNSAFE" predicate
+    #[arg(long)]
+    unsafe_: bool,
 
     /// enable debug mode to print the raw json output
     #[arg(long)]
@@ -133,22 +149,6 @@ fn calculate_happiness_average(services: &[Service]) -> f64 {
     }
 }
 
-fn top_n_services(services: &[Service], predicate: &str, n: usize) -> Vec<Service> {
-    let mut filtered_services: Vec<Service> = services
-        .iter()
-        .filter(|s| s.predicate == predicate)
-        .cloned()
-        .collect();
-
-    filtered_services.sort_by(|a, b| {
-        b.exposure
-            .partial_cmp(&a.exposure)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
-    filtered_services.into_iter().take(n).collect()
-}
-
 fn colorize_predicate(predicate: &str) -> ColoredString {
     match predicate {
         "OK" => predicate.green(),
@@ -164,13 +164,47 @@ fn main() {
     let services = run_systemd_analyze(args.debug);
     let exposure_avg = calculate_exposure_average(&services);
     let happiness_avg = calculate_happiness_average(&services);
-    let top_services = top_n_services(&services, &args.predicate, args.top_n as usize);
 
+    // If you don't like this, let me remind you that our alternative
+    // is a large if else block.
+    let predicate = match (args.ok, args.medium, args.exposed, args.unsafe_) {
+        (true, _, _, _) => Some("OK"),
+        (_, true, _, _) => Some("MEDIUM"),
+        (_, _, true, _) => Some("EXPOSED"),
+        (_, _, _, true) => Some("UNSAFE"),
+        _ => args.predicate.as_deref(),
+    };
+
+    let mut filtered_services = if let Some(pred) = predicate {
+        services
+            .iter()
+            .filter(|s| s.predicate == pred)
+            .cloned()
+            .collect()
+    } else {
+        services.clone()
+    };
+
+    // Apply --top-n after filtering by predicate
+    // Since we're using a Vec, we can just sort
+    // and take the top n elements. This is better
+    // than my previous approach.
+    if let Some(top_n) = args.top_n {
+        filtered_services.sort_by(|a, b| {
+            b.exposure
+                .partial_cmp(&a.exposure)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        filtered_services = filtered_services.into_iter().take(top_n as usize).collect();
+    }
+
+    // Output in JSON format if --json is set, for future parsing
+    // in CI/CD environments.
     if args.json {
         let result = AnalysisResult {
             average_exposure: exposure_avg,
             average_happiness: happiness_avg,
-            top_services,
+            top_services: filtered_services,
         };
         let json_output =
             serde_json::to_string_pretty(&result).expect("failed to serialize to json");
@@ -186,14 +220,14 @@ fn main() {
         );
 
         println!(
-            "\n{} {} {} '{}':\n",
+            "\n{} {} {} '{}'\n",
             "## Top".bold().cyan(),
-            args.top_n.to_string().bold().blue(),
-            "services with predicate".bold().cyan(),
-            colorize_predicate(&args.predicate)
+            filtered_services.len(),
+            "services for predicate:".bold().cyan(),
+            predicate.map_or("N/A".normal(), |pred| colorize_predicate(pred))
         );
 
-        for service in top_services {
+        for service in filtered_services {
             println!(
                 "{} {} {} ({} {:.2})",
                 "•".green(),
