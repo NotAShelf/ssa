@@ -66,4 +66,5 @@ request depending on your own ability to implement the changes.
 
 ## License
 
-SSA is licensed under the [MIT License]. See the license file for more details.
+SSA is licensed under the [MIT License](LICENSE). See the license file for more
+details.
