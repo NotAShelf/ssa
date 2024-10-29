@@ -40,6 +40,10 @@ struct Args {
     /// Output results in JSON format
     #[arg(long)]
     json: bool,
+
+    /// Run systemd-analyze with --user flag
+    #[arg(long)]
+    user: bool,
 }
 
 // store unit details in a struct
@@ -66,9 +70,17 @@ struct AnalysisResult {
     top_services: Vec<Service>,
 }
 
-fn run_systemd_analyze(debug: bool) -> Vec<Service> {
+fn run_systemd_analyze(debug: bool, user: bool) -> Vec<Service> {
+    // Construct arguments for `systemd-analyze` dynamically
+    // --json=short is slightly faster than "pretty", and --no-pager
+    // is necessary for parsing the output.
+    let mut args = vec!["security", "--json=short", "--no-pager"];
+    if user {
+        args.push("--user");
+    }
+
     let output = Command::new("systemd-analyze")
-        .args(&["security", "--json=short", "--no-pager"])
+        .args(&args)
         .output()
         .expect("failed to execute process");
 
@@ -77,6 +89,8 @@ fn run_systemd_analyze(debug: bool) -> Vec<Service> {
         panic!("systemd-analyze failed: {}", err);
     }
 
+    // If --debug is passed to the program, print the raw JSON output
+    // for, well, debugging. It doesn't do much, but doesn't hurt either.
     if debug {
         println!("{}", "Raw JSON output:".bold().yellow());
         println!("{}", String::from_utf8_lossy(&output.stdout).green());
@@ -164,7 +178,7 @@ fn colorize_predicate(predicate: &str) -> ColoredString {
 
 fn main() {
     let args = Args::parse();
-    let services = run_systemd_analyze(args.debug);
+    let services = run_systemd_analyze(args.debug, args.user);
     let exposure_avg = calculate_exposure_average(&services);
     let happiness_avg = calculate_happiness_average(&services);
 
