@@ -12,11 +12,11 @@
     pkgsForEach = nixpkgs.legacyPackages;
   in rec {
     packages = forEachSystem (system: {
-      default = pkgsForEach.${system}.callPackage ./default.nix {};
+      default = pkgsForEach.${system}.callPackage ./nix/package.nix {};
     });
 
     devShells = forEachSystem (system: {
-      default = with pkgsForEach.${system}; mkShell {packages = [cargo gcc];};
+      default = pkgsForEach.${system}.callPackage ./nix/shell.nix {};
     });
 
     hydraJobs = packages;

@@ -1,19 +1,23 @@
 {
   lib,
   rustPlatform,
+  stdenvAdapters,
+  llvm,
 }: let
-  pname = "ssa";
-  version = "0.1.0";
+  toml = (lib.importTOML ../Cargo.toml).package;
+  pname = toml.name;
+  inherit (toml) version;
 in
-  rustPlatform.buildRustPackage {
+  rustPlatform.buildRustPackage.override {stdenv = stdenvAdapters.useMoldLinker llvm.stdenv;} {
     inherit pname version;
     src = builtins.path {
       name = "${pname}-${version}";
-      path = ./.;
+      path = ../.;
       filter = lib.cleanSourceFilter;
     };
 
-    cargoLock.lockFile = ./Cargo.lock;
+    RUSTFLAGS = "-C link-arg=-fuse-ld=mold";
+    cargoLock.lockFile = ../Cargo.lock;
 
     meta = {
       description = "Simple, streamlined and pretty aggregator for systemd-analyze security";
