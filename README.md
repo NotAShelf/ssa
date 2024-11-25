@@ -17,17 +17,27 @@
 - Pretty
 - Verbose
 - Machine & Human friendly
+- CI/CD ready
 
 ## Usage
 
-You can run SSA without any arguments, which will return a pretty-printed
-version of the security analysis. Though, the main functionality - the _Crème de
-la crème_ - of SSA is its ability to filter services by predicate, and print
-them in JSON format if need be. Lets go over possible arguments.
+SSA can be ran without any arguments, which will return a pretty-printed version
+of the security analysis without any kind of sorting or filtering. In addition,
+you will be shown the average exposure (between 0.0 and 10.0, 10.0 being most
+exposed) and the average happiness (between 0 and 5, 5 being the happiest). In
+addition to displaying the top N services for a given predicate, SSA will color
+the exposure level output based on how exposed it is. Because here we do things
+the _✨ pretty ✨_ way.
+
+The main functionality - the _Crème de la crème_ - of SSA is its ability to
+filter services by predicate, and print them in JSON format if need be. If the
+default output does not suit your needs, the output of SSA can be spiced up with
+additional command-line flags. Possible flags are:
 
 - `-t, --top-n <TOP_N>` -> number of top services to display
 - `-p, --predicate <PREDICATE>` -> predicate by which to filter services
 
+- `--safe` -> only return services with the **SAFE** predicate
 - `--ok` -> only return services with the **OK** predicate
 - `--medium` -> only return services with the **MEDIUM** predicate
 - `--exposed` -> only return services with the **EXPOSED** predicate
@@ -35,11 +45,6 @@ them in JSON format if need be. Lets go over possible arguments.
 
 - `--debug` ->enable debug mode to print the raw JSON output
 - `--json` ->output results in JSON format
-
-In addition, you will be shown the average exposure (out of 10, 10 being worst)
-and the average happiness (out of 5, 5 being best). In addition to displaying
-the top N services for a given predicate, SSA will color the exposure level
-output based on how exposed it is. Because here do things the ✨ pretty ✨ way.
 
 ### Example 1:
 
@@ -53,6 +58,7 @@ ssa --top-n 10 --predicate UNSAFE
 This will return the **10** services marked as **UNSAFE** in the security
 report. Possible predicates are:
 
+- `SAFE`
 - `OK`
 - `MEDIUM`
 - `EXPOSED`
@@ -110,5 +116,4 @@ is always open to new features.
 
 ## License
 
-SSA is licensed under the [MIT License](LICENSE). See the license file for more
-details.
+SSA is licensed under the MIT License. See [LICENSE](LICENSE) for more details.
