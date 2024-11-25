@@ -1,5 +1,5 @@
 use clap::Parser;
-use colored::*;
+use colored::{ColoredString, Colorize, Styles};
 use serde::Serialize;
 use serde_json::Value;
 use std::process::Command;
@@ -9,13 +9,23 @@ use std::process::Command;
 #[command(version)]
 #[command(about = "Simple, streamlined and ✨ pretty ✨ aggregator for systemd-analyze security", long_about = None)]
 struct Args {
+    /// Run systemd-analyze with --user flag
+    #[arg(short, long)]
+    user: bool,
+
     /// Number of top services to display
     #[arg(short, long)]
     top_n: Option<u32>,
 
     /// Predicate by which to filter services
+    ///
+    /// Expects one of SAFE, OK, MEDIUM or EXPOSED as defined
     #[arg(short, long)]
     predicate: Option<String>,
+
+    /// Only return services with the "SAFE" predicate
+    #[arg(long)]
+    safe: bool,
 
     /// Only return services with the "OK" predicate
     #[arg(long)]
@@ -38,12 +48,8 @@ struct Args {
     debug: bool,
 
     /// Output results in JSON format
-    #[arg(long)]
+    #[arg(short, long)]
     json: bool,
-
-    /// Run systemd-analyze with --user flag
-    #[arg(long)]
-    user: bool,
 }
 
 // store unit details in a struct
@@ -129,6 +135,7 @@ fn run_systemd_analyze(debug: bool, user: bool) -> Vec<Service> {
 
 fn calculate_exposure_average(services: &[Service]) -> f64 {
     if services.is_empty() {
+        println!("{} no services found", "Warning:".red());
         return f64::NAN;
     }
     let total_exposure: f64 = services.iter().map(|s| s.exposure).sum();
@@ -136,7 +143,7 @@ fn calculate_exposure_average(services: &[Service]) -> f64 {
 }
 
 fn calculate_happiness_average(services: &[Service]) -> f64 {
-    let happiness_map = vec![
+    let happiness_map = [
         ("😀", 5.0),
         ("🙂", 4.0),
         ("😐", 3.0),
@@ -168,6 +175,7 @@ fn calculate_happiness_average(services: &[Service]) -> f64 {
 
 fn colorize_predicate(predicate: &str) -> ColoredString {
     match predicate {
+        "SAFE" => predicate.green(),
         "OK" => predicate.green(),
         "MEDIUM" => predicate.white(),
         "EXPOSED" => predicate.yellow(),
@@ -184,11 +192,12 @@ fn main() {
 
     // If you don't like this, let me remind you that our alternative
     // is a large if else block.
-    let predicate = match (args.ok, args.medium, args.exposed, args.unsafe_) {
-        (true, _, _, _) => Some("OK"),
-        (_, true, _, _) => Some("MEDIUM"),
-        (_, _, true, _) => Some("EXPOSED"),
-        (_, _, _, true) => Some("UNSAFE"),
+    let predicate = match (args.safe, args.ok, args.medium, args.exposed, args.unsafe_) {
+        (true, _, _, _, _) => Some("SAFE"),
+        (_, true, _, _, _) => Some("OK"),
+        (_, _, true, _, _) => Some("MEDIUM"),
+        (_, _, _, true, _) => Some("EXPOSED"),
+        (_, _, _, _, true) => Some("UNSAFE"),
         _ => args.predicate.as_deref(),
     };
 
@@ -223,16 +232,17 @@ fn main() {
             average_happiness: happiness_avg,
             top_services: filtered_services,
         };
-        let json_output =
-            serde_json::to_string_pretty(&result).expect("failed to serialize to json");
+        let json_output = serde_json::to_string(&result).expect("failed to serialize to json");
         println!("{}", json_output);
     } else {
+        // TODO: pretty-print output should be more dynamic.
+        // - Colorize average to indicate severity, which is between 0 and 10 where
+        // (red = good, yellow = medium, green = bad)
+        // - Service(s) should be replaced with a function to dynamically decide correct plurality
         println!(
-            "{}\n\n{} {:.2} | {} {:.2}",
+            "{}\n\nAverage Exposure: {:.2} | Average Happiness: {:.2}",
             "# Systemd Security Analysis".bold().cyan(),
-            "Average Exposure:",
             exposure_avg,
-            "Average Happiness:",
             happiness_avg
         );
 
@@ -240,8 +250,8 @@ fn main() {
             "\n{} {} {} '{}'\n",
             "## Top".bold().cyan(),
             filtered_services.len(),
-            "services for predicate:".bold().cyan(),
-            predicate.map_or("N/A".normal(), |pred| colorize_predicate(pred))
+            "service(s) for predicate:".bold().cyan(),
+            predicate.map_or("N/A".normal(), colorize_predicate)
         );
 
         for service in filtered_services {
