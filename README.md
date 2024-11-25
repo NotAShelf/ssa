@@ -16,8 +16,7 @@
 - Fast (One could say... blazingly fast.)
 - Pretty
 - Verbose
-
-What else do you need?
+- Machine & Human friendly
 
 ## Usage
 
@@ -83,18 +82,21 @@ ssa --unsafe --top-n 3
 
 ## Why?
 
-Honestly, just see the next section. Long story short is that I wanted to
-aggregate the results of `systemd-analyze security` for testing and NixOS VM
-tests in CI.
+For what it's worth, SSA has been created because I wanted to write a structured
+bash script for parsing the output of `systemd-analyze security`, which actually
+does _not_ have any kind of sorting options..
+
+Rust came to mind, as Serde is pretty cool and I wanted to do argument parsing -
+which Clap does better than Python libs I am familiar with.
+
+Long story short is that I wanted to aggregate the results of
+`systemd-analyze security` for testing and NixOS VM tests in CI. It also acts as
+a short-hand alias for `systemd-analyze security` with much better filtering
+options.
 
 ## Contributing
 
 [Microfetch]: https://github.com/notashelf/microfetch
-
-For what it's worth, SSA has been created because I wanted to write a structured
-bash script for parsing the output of `systemd-analyze security`. Rust came to
-mind, as Serde is pretty cool and I wanted to do argument parsing - which Clap
-does better than Python libs I am familiar with.
 
 The software is very minimal. You run it, you get a bunch of lines. You might
 have cooler ideas to do with aggregated data (in which case, just take a look at
