@@ -1,5 +1,5 @@
 {
-  description = "Rust Project Template";
+  description = "SSA: a pretty systemd security analysis aggregator";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs";
 
   outputs = {
@@ -10,7 +10,7 @@
     forEachSystem = nixpkgs.lib.genAttrs systems;
 
     pkgsForEach = nixpkgs.legacyPackages;
-  in rec {
+  in {
     packages = forEachSystem (system: {
       default = pkgsForEach.${system}.callPackage ./nix/package.nix {};
     });
@@ -19,6 +19,6 @@
       default = pkgsForEach.${system}.callPackage ./nix/shell.nix {};
     });
 
-    hydraJobs = packages;
+    hydraJobs = self.packages;
   };
 }
