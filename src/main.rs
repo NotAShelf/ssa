@@ -1,14 +1,19 @@
 use clap::Parser;
-use colored::{ColoredString, Colorize, Styles};
+use colored::{ColoredString, Colorize};
 use serde::Serialize;
 use serde_json::Value;
+
 use std::process::Command;
 
 #[derive(Parser)]
 #[command(name = "SSA")]
-#[command(version)]
+#[command(version, propagate_version = true)]
 #[command(about = "Simple, streamlined and ✨ pretty ✨ aggregator for systemd-analyze security", long_about = None)]
-struct Args {
+struct Cli {
+    /// Optional service to analyze
+    #[arg(default_value = None)]
+    service: Option<String>,
+
     /// Run systemd-analyze with --user flag
     #[arg(short, long)]
     user: bool,
@@ -19,7 +24,7 @@ struct Args {
 
     /// Predicate by which to filter services
     ///
-    /// Expects one of SAFE, OK, MEDIUM or EXPOSED as defined
+    /// Expects one of SAFE, OK, MEDIUM, UNSAFE or EXPOSED.
     #[arg(short, long)]
     predicate: Option<String>,
 
@@ -52,7 +57,7 @@ struct Args {
     json: bool,
 }
 
-// store unit details in a struct
+/// Struct to store unit details.
 #[derive(Debug, Clone, Serialize)]
 struct Service {
     /// name of the unit
@@ -76,13 +81,19 @@ struct AnalysisResult {
     top_services: Vec<Service>,
 }
 
-fn run_systemd_analyze(debug: bool, user: bool) -> Vec<Service> {
+fn run_systemd_analyze(debug: bool, user: bool, service: Option<String>) -> Vec<Service> {
     // Construct arguments for `systemd-analyze` dynamically
     // --json=short is slightly faster than "pretty", and --no-pager
     // is necessary for parsing the output.
     let mut args = vec!["security", "--json=short", "--no-pager"];
     if user {
         args.push("--user");
+    }
+
+    // If there is a service argument, we are analyzing the service
+    // and not the complete result of systemd-analyze security.
+    if !service.is_none() {
+        args.push(service.as_deref().unwrap())
     }
 
     let output = Command::new("systemd-analyze")
@@ -130,6 +141,8 @@ fn run_systemd_analyze(debug: bool, user: bool) -> Vec<Service> {
             }
         }
     }
+
+    // Return a vector of services
     services
 }
 
@@ -142,20 +155,21 @@ fn calculate_exposure_average(services: &[Service]) -> f64 {
     total_exposure / services.len() as f64
 }
 
+const HAPPINESS_MAP: [(&str, f64); 5] = [
+    ("😀", 5.0),
+    ("🙂", 4.0),
+    ("😐", 3.0),
+    ("🙁", 2.0),
+    ("😨", 1.0),
+];
+
 fn calculate_happiness_average(services: &[Service]) -> f64 {
-    let happiness_map = [
-        ("😀", 5.0),
-        ("🙂", 4.0),
-        ("😐", 3.0),
-        ("🙁", 2.0),
-        ("😨", 1.0),
-    ];
     let mut total_happiness = 0.0;
     let mut count = 0;
 
     for service in services {
         if let Some(&score) =
-            happiness_map
+            HAPPINESS_MAP
                 .iter()
                 .find_map(|(h, s)| if service.happy == *h { Some(s) } else { None })
         {
@@ -185,8 +199,8 @@ fn colorize_predicate(predicate: &str) -> ColoredString {
 }
 
 fn main() {
-    let args = Args::parse();
-    let services = run_systemd_analyze(args.debug, args.user);
+    let args = Cli::parse();
+    let services = run_systemd_analyze(args.debug, args.user, args.service);
     let exposure_avg = calculate_exposure_average(&services);
     let happiness_avg = calculate_happiness_average(&services);
 
