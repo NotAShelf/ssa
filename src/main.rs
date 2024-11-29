@@ -92,8 +92,9 @@ fn run_systemd_analyze(debug: bool, user: bool, service: Option<String>) -> Vec<
 
     // If there is a service argument, we are analyzing the service
     // and not the complete result of systemd-analyze security.
-    if !service.is_none() {
-        args.push(service.as_deref().unwrap())
+    if service.is_some() {
+        args.push(service.as_deref().unwrap());
+        unimplemented!()
     }
 
     let output = Command::new("systemd-analyze")
